@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../api';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
+import { formatMXN } from '../utils/format';
 
 const Inventory = () => {
   const queryClient = useQueryClient();
@@ -11,6 +12,7 @@ const Inventory = () => {
   const [form, setForm] = useState({
     name: '',
     description: '',
+    barcode: '',
     buyPrice: 0,
     sellPrice: 0,
     stock: 0,
@@ -37,6 +39,9 @@ const Inventory = () => {
       setIsModalOpen(false);
       setEditingProduct(null);
       resetForm();
+    },
+    onError: (error: any) => {
+       alert(error.response?.data?.message || 'Error guardando producto');
     }
   });
 
@@ -49,13 +54,21 @@ const Inventory = () => {
     }
   });
 
-  const resetForm = () => setForm({ name: '', description: '', buyPrice: 0, sellPrice: 0, stock: 0, minStock: 5 });
+  const resetForm = () => setForm({ name: '', description: '', barcode: '', buyPrice: 0, sellPrice: 0, stock: 0, minStock: 5 });
 
   const handleEdit = (product: any) => {
     setEditingProduct(product);
-    setForm(product);
+    setForm({
+      name: product.name || '',
+      description: product.description || '',
+      barcode: product.barcode || '',
+      buyPrice: product.buyPrice || 0,
+      sellPrice: product.sellPrice || 0,
+      stock: product.stock || 0,
+      minStock: product.minStock || 5
+    });
     setIsModalOpen(true);
-  };
+  }
 
   const handleCreate = () => {
     setEditingProduct(null);
@@ -81,7 +94,7 @@ const Inventory = () => {
         <table className="w-full text-sm text-left">
           <thead className="text-xs text-gray-700 bg-gray-50 border-b">
             <tr>
-              <th className="px-6 py-4">Producto</th>
+              <th className="px-6 py-4">Producto / Código</th>
               <th className="px-6 py-4">Venta ($)</th>
               <th className="px-6 py-4">Compra ($)</th>
               <th className="px-6 py-4">Stock</th>
@@ -92,15 +105,20 @@ const Inventory = () => {
             {products?.map((p: any) => (
               <tr key={p.id} className="border-b bg-white hover:bg-gray-50">
                 <td className="px-6 py-4 font-medium text-gray-900">
-                  {p.name}
-                  {p.stock <= p.minStock && (
-                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
-                      Bajo stock
+                  <div className="flex flex-col">
+                    <span>
+                      {p.name}
+                      {p.stock <= p.minStock && (
+                        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                          Bajo stock
+                        </span>
+                      )}
                     </span>
-                  )}
+                    {p.barcode && <span className="text-xs text-gray-500 font-normal tracking-wider mt-0.5">Ref: {p.barcode}</span>}
+                  </div>
                 </td>
-                <td className="px-6 py-4">${p.sellPrice.toFixed(2)}</td>
-                <td className="px-6 py-4 text-gray-500">${p.buyPrice.toFixed(2)}</td>
+                <td className="px-6 py-4">{formatMXN(p.sellPrice)}</td>
+                <td className="px-6 py-4 text-gray-500">{formatMXN(p.buyPrice)}</td>
                 <td className="px-6 py-4">{p.stock}</td>
                 <td className="px-6 py-4 text-right">
                   <button onClick={() => handleEdit(p)} className="text-blue-600 hover:bg-blue-50 p-2 rounded-full mr-2">
@@ -126,9 +144,15 @@ const Inventory = () => {
           <div className="relative w-full max-w-lg bg-white rounded-xl shadow-lg p-6">
             <h3 className="text-lg font-bold mb-4">{editingProduct ? 'Editar Producto' : 'Nuevo Producto'}</h3>
             <form onSubmit={(e) => { e.preventDefault(); mutation.mutate(form as any); }} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Nombre</label>
-                <input required type="text" className="w-full border p-2 rounded" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2 md:col-span-1">
+                  <label className="block text-sm font-medium mb-1">Nombre</label>
+                  <input required type="text" className="w-full border p-2 rounded" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
+                </div>
+                <div className="col-span-2 md:col-span-1">
+                  <label className="block text-sm font-medium mb-1">Código de Barras (Opcional)</label>
+                  <input type="text" className="w-full border p-2 rounded" value={form.barcode} onChange={e => setForm({...form, barcode: e.target.value})} placeholder="Ej: 75010001" />
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>

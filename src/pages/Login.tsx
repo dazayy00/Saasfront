@@ -9,6 +9,7 @@ const Login = () => {
   const [isRegister, setIsRegister] = useState(false);
   const [name, setName] = useState('');
   const [businessName, setBusinessName] = useState('');
+  const [phone, setPhone] = useState('');
   const [error, setError] = useState('');
   const login = useAuthStore(state => state.login);
   const navigate = useNavigate();
@@ -18,7 +19,7 @@ const Login = () => {
     setError('');
     try {
       if (isRegister) {
-        const { data } = await api.post('/auth/register', { name, email, password, businessName });
+        const { data } = await api.post('/auth/register', { name, email, password, businessName, phone });
         login(data);
       } else {
         const { data } = await api.post('/auth/login', { email, password });
@@ -64,6 +65,15 @@ const Login = () => {
                   onChange={(e) => setName(e.target.value)}
                   className="appearance-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                 />
+                <input
+                  name="phone"
+                  type="tel"
+                  required
+                  placeholder="Número de celular (10 dígitos)"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="appearance-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                />
               </>
             )}
             <input
@@ -98,11 +108,18 @@ const Login = () => {
         <div className="text-center mt-4">
           <button 
             type="button" 
-            className="text-sm text-blue-600 hover:text-blue-500 font-medium"
+            className="text-sm text-blue-600 hover:text-blue-500 font-medium block w-full mb-3"
             onClick={() => setIsRegister(!isRegister)}
           >
             {isRegister ? '¿Ya tienes una cuenta? Inicia sesión' : '¿No tienes cuenta? Registra tu negocio'}
           </button>
+          {!isRegister && (
+             <div className="text-sm text-gray-500">
+               <a href="/forgot-password" className="hover:text-black hover:underline cursor-pointer">
+                 ¿Olvidaste tu contraseña?
+               </a>
+             </div>
+          )}
         </div>
       </div>
     </div>

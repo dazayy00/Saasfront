@@ -28,6 +28,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           <Link to="/pos" className="block px-6 py-3 text-gray-600 hover:bg-gray-100 hover:text-gray-900">
             Punto de Venta
           </Link>
+          <Link to="/analytics" className="block px-6 py-3 text-gray-600 hover:bg-gray-100 hover:text-gray-900">
+            Analítica y Cierre
+          </Link>
         </nav>
       </aside>
 
