@@ -9,6 +9,7 @@ import Layout from './components/Layout';
 import Inventory from './pages/Inventory';
 import POS from './pages/POS';
 import Analytics from './pages/Analytics';
+import Settings from './pages/Settings';
 
 const queryClient = new QueryClient();
 
@@ -32,6 +33,7 @@ function App() {
           <Route path="/inventory" element={<ProtectedRoute><Inventory /></ProtectedRoute>} />
           <Route path="/pos" element={<ProtectedRoute><POS /></ProtectedRoute>} />
           <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

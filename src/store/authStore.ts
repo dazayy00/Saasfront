@@ -6,12 +6,15 @@ interface User {
   name: string;
   email: string;
   businessId: string;
+  businessName?: string;
+  phone?: string;
   token: string;
 }
 
 interface AuthState {
   user: User | null;
   login: (user: User) => void;
+  updateUser: (data: Partial<User>) => void;
   logout: () => void;
 }
 
@@ -20,6 +23,10 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       user: null,
       login: (user) => set({ user }),
+      updateUser: (data) =>
+        set((state) => ({
+          user: state.user ? { ...state.user, ...data } : null,
+        })),
       logout: () => set({ user: null }),
     }),
     {

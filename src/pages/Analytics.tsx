@@ -276,10 +276,10 @@ const Analytics = () => {
                    return (
                      <tr key={p.id} className="border-b bg-white hover:bg-gray-50">
                         <td className="px-6 py-4 font-medium text-gray-900">{p.name}</td>
-                        <td className="px-6 py-4 text-center text-gray-500">{p.mean.toFixed(2)} uds</td>
+                        <td className="px-6 py-4 text-center text-gray-500">{p.mean.toFixed(2)}</td>
                         <td className="px-6 py-4 text-center text-gray-500">± {p.stdDev.toFixed(2)}</td>
-                        <td className="px-6 py-4 text-center font-bold text-purple-700 bg-purple-50/30">{Math.ceil(p.estimated7d)} uds</td>
-                        <td className="px-6 py-4 text-center font-semibold">{p.stock} uds</td>
+                        <td className="px-6 py-4 text-center font-bold text-purple-700 bg-purple-50/30">{Math.ceil(p.estimated7d)}</td>
+                        <td className="px-6 py-4 text-center font-semibold">{p.stock}</td>
                         <td className="px-6 py-4 text-right">
                            {mustRestock ? (
                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800">Comprar a proveedor</span>

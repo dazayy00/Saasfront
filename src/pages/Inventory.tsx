@@ -95,8 +95,7 @@ const Inventory = () => {
           <thead className="text-xs text-gray-700 bg-gray-50 border-b">
             <tr>
               <th className="px-6 py-4">Producto / Código</th>
-              <th className="px-6 py-4">Venta ($)</th>
-              <th className="px-6 py-4">Compra ($)</th>
+              <th className="px-6 py-4">Precio de Venta</th>
               <th className="px-6 py-4">Stock</th>
               <th className="px-6 py-4 text-right">Acciones</th>
             </tr>
@@ -118,7 +117,6 @@ const Inventory = () => {
                   </div>
                 </td>
                 <td className="px-6 py-4">{formatMXN(p.sellPrice)}</td>
-                <td className="px-6 py-4 text-gray-500">{formatMXN(p.buyPrice)}</td>
                 <td className="px-6 py-4">{p.stock}</td>
                 <td className="px-6 py-4 text-right">
                   <button onClick={() => handleEdit(p)} className="text-blue-600 hover:bg-blue-50 p-2 rounded-full mr-2">
@@ -132,7 +130,7 @@ const Inventory = () => {
             ))}
             {!products?.length && (
               <tr>
-                <td colSpan={5} className="px-6 py-8 text-center text-gray-500">No hay productos. Agrega uno nuevo para empezar.</td>
+                <td colSpan={4} className="px-6 py-8 text-center text-gray-500">No hay productos. Agrega uno nuevo para empezar.</td>
               </tr>
             )}
           </tbody>

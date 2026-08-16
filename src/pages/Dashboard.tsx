@@ -1,10 +1,12 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '../api';
+import { useAuthStore } from '../store/authStore';
 import { Package, AlertCircle, DollarSign, FileText, X } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import { formatMXN } from '../utils/format';
+import { downloadTicket } from '../utils/ticket';
 
 const downloadPeriodSummary = (title: string, data: any[]) => {
   if (!data.length) return;
@@ -30,55 +32,21 @@ const downloadPeriodSummary = (title: string, data: any[]) => {
   doc.save(`resumen-${title.toLowerCase().replace(/ /g, '-')}-${Date.now()}.pdf`);
 };
 
-const downloadTicket = (sale: any) => {
-  const doc = new jsPDF({
-    orientation: 'portrait',
-    unit: 'mm',
-    format: [80, 250]
-  });
-
-  doc.setFontSize(16);
-  doc.text("SaaS Inventory", 40, 10, { align: 'center' });
-  
-  doc.setFontSize(10);
-  doc.text(`Ticket #${sale.id.slice(-5).toUpperCase()}`, 40, 16, { align: 'center' });
-  doc.text(`Fecha: ${new Date(sale.createdAt).toLocaleString()}`, 40, 20, { align: 'center' });
-
-  const tableData = sale.items?.map((i: any) => [
-    i.product?.name?.substring(0, 15) || 'Item',
-    i.quantity.toString(),
-    formatMXN(i.price),
-    formatMXN(i.quantity * i.price)
-  ]) || [];
-
-  (doc as any).autoTable({
-    startY: 25,
-    head: [['Prod', 'Cant', 'Precio', 'Total']],
-    body: tableData,
-    theme: 'plain',
-    styles: { fontSize: 8, cellPadding: 1, halign: 'left' },
-    headStyles: { fontStyle: 'bold' },
-    margin: { left: 5, right: 5 },
-    columnStyles: {
-      1: { halign: 'center' },
-      2: { halign: 'right' },
-      3: { halign: 'right' }
-    }
-  });
-
-  const finalY = (doc as any).lastAutoTable.finalY || 30;
-  
-  doc.setFontSize(12);
-  doc.text(`TOTAL: ${formatMXN(sale.total)}`, 40, finalY + 10, { align: 'center' });
-  doc.setFontSize(10);
-  doc.text("¡Gracias por su compra!", 40, finalY + 20, { align: 'center' });
-
-  doc.save(`ticket-${sale.id.slice(-5)}.pdf`);
-};
-
 const Dashboard = () => {
+  const { user } = useAuthStore();
   const [historyMode, setHistoryMode] = useState<'tickets' | 'daily' | 'weekly' | 'monthly'>('tickets');
   const [showAllTickets, setShowAllTickets] = useState(false);
+
+  const { data: settings } = useQuery({
+    queryKey: ['settings'],
+    queryFn: async () => {
+      const { data } = await api.get('/settings');
+      return data;
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const businessName = settings?.business?.name || user?.businessName || 'Mi Negocio';
 
   const { data: products } = useQuery({
     queryKey: ['products'],
@@ -241,7 +209,7 @@ const Dashboard = () => {
                         </div>
                         <div className="flex items-center gap-3">
                           <div className="font-bold text-blue-600">+{formatMXN(sale.total)}</div>
-                          <button onClick={() => downloadTicket(sale)} className="text-[10px] uppercase font-bold tracking-wider rounded border bg-white px-2 py-1 text-gray-600 hover:text-black hover:border-black transition-colors">PDF</button>
+                          <button onClick={() => downloadTicket(sale, businessName)} className="text-[10px] uppercase font-bold tracking-wider rounded border bg-white px-2 py-1 text-gray-600 hover:text-black hover:border-black transition-colors">PDF</button>
                         </div>
                       </div>
                     </div>
@@ -361,9 +329,9 @@ const Dashboard = () => {
                          <div className="font-extrabold text-blue-600 text-lg">
                             {formatMXN(sale.total)}
                          </div>
-                         <button onClick={() => downloadTicket(sale)} className="text-xs bg-black text-white px-3 py-1.5 rounded-md font-medium hover:bg-gray-800 transition-colors">
-                           Descargar PDF
-                         </button>
+                          <button onClick={() => downloadTicket(sale, businessName)} className="text-xs bg-black text-white px-3 py-1.5 rounded-md font-medium hover:bg-gray-800 transition-colors">
+                            Descargar PDF
+                          </button>
                       </div>
                    </div>
                  ))}

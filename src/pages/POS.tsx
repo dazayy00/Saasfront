@@ -1,13 +1,27 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../api';
+import { useAuthStore } from '../store/authStore';
 import { ShoppingCart, X, Plus, Minus } from 'lucide-react';
 import { formatMXN } from '../utils/format';
+import { downloadTicket } from '../utils/ticket';
 
 const POS = () => {
+  const { user } = useAuthStore();
   const queryClient = useQueryClient();
   const [cart, setCart] = useState<{product: any, quantity: number}[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const { data: settings } = useQuery({
+    queryKey: ['settings'],
+    queryFn: async () => {
+      const { data } = await api.get('/settings');
+      return data;
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const businessName = settings?.business?.name || user?.businessName || 'Mi Negocio';
   
   const { data: products } = useQuery({
     queryKey: ['products'],
@@ -26,11 +40,14 @@ const POS = () => {
       }));
       return api.post('/sales', { items });
     },
-    onSuccess: () => {
+    onSuccess: (response: any) => {
+      const sale = response.data;
       setCart([]);
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['sales'] });
-      alert('Venta procesada con éxito!');
+      if (sale) {
+        downloadTicket(sale, businessName);
+      }
     }
   });
 
