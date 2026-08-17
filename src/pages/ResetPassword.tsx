@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Package, ShieldCheck, KeyRound, CheckCircle2, ArrowLeft } from 'lucide-react';
+import { MailCheck, KeyRound, CheckCircle2, ArrowLeft, Mail } from 'lucide-react';
 import api from '../api';
 
 const ResetPassword = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const phone = location.state?.phone || '';
+  const email = location.state?.email || '';
 
   const [step, setStep] = useState<'verify' | 'reset'>('verify');
   const [pin, setPin] = useState('');
@@ -16,10 +16,10 @@ const ResetPassword = () => {
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-    if (!phone) {
+    if (!email) {
       navigate('/forgot-password');
     }
-  }, [phone, navigate]);
+  }, [email, navigate]);
 
   // Paso 1: Verificar que el código PIN sea correcto
   const handleVerifyCode = async (e: React.FormEvent) => {
@@ -33,7 +33,7 @@ const ResetPassword = () => {
     setStatus('loading');
     setMessage('');
     try {
-      await api.post('/auth/verify-reset-code', { phone, token: pin });
+      await api.post('/auth/verify-reset-code', { email, token: pin.trim() });
       setStatus('idle');
       setMessage('');
       setStep('reset');
@@ -60,7 +60,7 @@ const ResetPassword = () => {
     setStatus('loading');
     setMessage('');
     try {
-      const response = await api.post('/auth/reset-password', { phone, token: pin, newPassword: password });
+      const response = await api.post('/auth/reset-password', { email, token: pin.trim(), newPassword: password });
       setMessage(response.data.message || 'Contraseña actualizada con éxito');
       setStatus('success');
       setTimeout(() => {
@@ -72,7 +72,7 @@ const ResetPassword = () => {
     }
   };
 
-  if (!phone) return null;
+  if (!email) return null;
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -80,18 +80,18 @@ const ResetPassword = () => {
         <div className="flex justify-center">
           <div className="p-3 bg-black rounded-2xl shadow-md">
             {step === 'verify' ? (
-              <ShieldCheck className="w-8 h-8 text-white" />
+              <MailCheck className="w-8 h-8 text-white" />
             ) : (
               <KeyRound className="w-8 h-8 text-white" />
             )}
           </div>
         </div>
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          {step === 'verify' ? 'Verificación de Código' : 'Nueva Contraseña'}
+          {step === 'verify' ? 'Verificación de Correo' : 'Nueva Contraseña'}
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
           {step === 'verify'
-            ? `Ingresa el PIN de 6 dígitos enviado al número ${phone}`
+            ? `Ingresa el código PIN de 6 dígitos enviado a ${email}`
             : 'El código fue verificado. Ahora define tu nueva contraseña.'}
         </p>
 
@@ -158,8 +158,8 @@ const ResetPassword = () => {
                     className="appearance-none block w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-black text-center tracking-[0.6em] font-mono font-bold text-2xl"
                   />
                 </div>
-                <p className="text-xs text-gray-500 text-center mt-2">
-                  Revisa tus mensajes SMS en el celular {phone}
+                <p className="text-xs text-gray-500 text-center mt-2 flex items-center justify-center gap-1">
+                  <Mail className="w-3.5 h-3.5" /> Revisa tu bandeja de entrada y spam en {email}
                 </p>
               </div>
 
@@ -176,9 +176,9 @@ const ResetPassword = () => {
               <div className="text-center pt-2 flex items-center justify-center gap-4">
                 <Link
                   to="/forgot-password"
-                  className="text-sm text-gray-500 hover:text-black flex items-center gap-1"
+                  className="text-sm text-gray-500 hover:text-black flex items-center gap-1 font-medium"
                 >
-                  <ArrowLeft className="w-4 h-4" /> Reenviar o cambiar número
+                  <ArrowLeft className="w-4 h-4" /> Cambiar de correo electrónico
                 </Link>
               </div>
             </form>
@@ -193,7 +193,7 @@ const ResetPassword = () => {
 
               <div className="p-3 bg-green-50 border border-green-200 rounded-xl flex items-center gap-2 text-xs text-green-800 font-medium">
                 <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
-                <span>Código <strong>{pin}</strong> verificado para {phone}</span>
+                <span className="truncate">Código <strong>{pin}</strong> verificado para {email}</span>
               </div>
 
               <div>
@@ -257,4 +257,3 @@ const ResetPassword = () => {
 };
 
 export default ResetPassword;
-
