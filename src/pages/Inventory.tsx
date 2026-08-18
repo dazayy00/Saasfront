@@ -4,7 +4,7 @@ import api from '../api';
 import { 
   Plus, Edit2, Trash2, PackagePlus, Search, AlertCircle, 
   History, Boxes, ArrowDownRight, ArrowUpRight, Calendar, User, 
-  Layers, Filter, ArrowRight, RefreshCw, Sparkles 
+  Layers, Filter, ArrowRight 
 } from 'lucide-react';
 import { formatMXN } from '../utils/format';
 
@@ -35,7 +35,7 @@ const Inventory = () => {
   });
 
   // Query: Productos
-  const { data: products, isLoading: isLoadingProducts } = useQuery({
+  const { data: products } = useQuery({
     queryKey: ['products'],
     queryFn: async () => {
       const { data } = await api.get('/products');
@@ -44,7 +44,7 @@ const Inventory = () => {
   });
 
   // Query: Historial de Entradas de Stock
-  const { data: stockEntries, isLoading: isLoadingEntries } = useQuery({
+  const { data: stockEntries } = useQuery({
     queryKey: ['stock-entries'],
     queryFn: async () => {
       const { data } = await api.get('/products/entries');
