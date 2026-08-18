@@ -50,7 +50,7 @@ const Settings = () => {
       }
       return api.put('/settings', payload);
     },
-    onSuccess: (res: any) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['settings'] });
       updateUser({
         name: form.name,
