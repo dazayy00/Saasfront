@@ -2,7 +2,7 @@ import { useAuthStore } from '../store/authStore';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import api from '../api';
-import { Store, UserCheck, LayoutDashboard, Package, ShoppingCart, BarChart3, Settings as SettingsIcon, LogOut } from 'lucide-react';
+import { Store, LayoutDashboard, Package, ShoppingCart, BarChart3, Settings as SettingsIcon, LogOut } from 'lucide-react';
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const { user, logout } = useAuthStore();
@@ -47,12 +47,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
               <h1 className="text-base font-bold text-gray-900 truncate" title={businessName}>
                 {businessName}
               </h1>
-              <div className="flex items-center gap-1.5 mt-1 text-xs text-gray-500">
-                <UserCheck className="w-3.5 h-3.5 text-green-600 shrink-0" />
-                <span className="truncate">
-                  En turno: <strong className="text-gray-900 font-medium">{employeeName}</strong>
-                </span>
-              </div>
+
             </div>
           </div>
         </div>
@@ -78,13 +73,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           })}
         </nav>
 
-        <div className="p-4 border-t border-gray-100">
-          <div className="px-3 py-2 bg-gray-50 rounded-lg">
-            <p className="text-[11px] text-gray-400 font-semibold uppercase tracking-wider">Empleado</p>
-            <p className="text-xs font-bold text-gray-900 truncate">{employeeName}</p>
-            <p className="text-[11px] text-gray-500 truncate">{user?.email}</p>
-          </div>
-        </div>
+
       </aside>
 
       {/* Main Content */}

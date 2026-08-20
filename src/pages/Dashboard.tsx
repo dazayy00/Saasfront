@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { Download } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import api from '../api';
 import { useAuthStore } from '../store/authStore';
@@ -8,34 +9,126 @@ import 'jspdf-autotable';
 import { formatMXN } from '../utils/format';
 import { downloadTicket } from '../utils/ticket';
 
-const downloadPeriodSummary = (title: string, data: any[]) => {
+const PERIOD_LABELS: Record<string, string> = {
+  daily: 'Diario',
+  weekly: 'Semanal',
+  monthly: 'Mensual',
+};
+
+const downloadPeriodSummary = (mode: string, data: any[]) => {
   if (!data.length) return;
+
+  const periodLabel = PERIOD_LABELS[mode] || mode;
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' });
+
   const doc = new jsPDF();
-  doc.setFontSize(20);
-  doc.text(`Resumen de Ventas: ${title}`, 14, 20);
-  
+  const pageW = doc.internal.pageSize.getWidth();
+
+  // ── Header bar ──────────────────────────────────────────────
+  doc.setFillColor(17, 17, 17);
+  doc.rect(0, 0, pageW, 32, 'F');
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`Resumen ${periodLabel} de Ventas`, 14, 14);
+
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Generado el ${dateStr}`, 14, 24);
+
+  // ── Totals summary ──────────────────────────────────────────
+  const grandTotal = data.reduce((sum, d) => sum + (d.total || 0), 0);
+  const totalTx = data.length;
+
+  doc.setTextColor(17, 17, 17);
+  doc.setFillColor(245, 245, 245);
+  doc.rect(14, 38, pageW - 28, 20, 'F');
+
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Total general:', 18, 50);
+  doc.setFont('helvetica', 'normal');
+  doc.text(formatMXN(grandTotal), 55, 50);
+
+  doc.setFont('helvetica', 'bold');
+  doc.text(`Períodos registrados:`, pageW / 2, 50);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`${totalTx}`, pageW / 2 + 42, 50);
+
+  // ── Table ───────────────────────────────────────────────────
   const tableData = data.map((d) => {
-    const periodLabel = d.date || d.period || d.month || 'N/A';
-    const productsStr = d.products ? Object.entries(d.products).map(([p, q]) => `${p} (x${q})`).join(', ') : '';
-    return [periodLabel, formatMXN(d.total||0), productsStr];
+    const periodKey = d.date || d.period || d.month || 'N/A';
+    const productsStr = d.products
+      ? Object.entries(d.products)
+          .sort((a: any, b: any) => b[1] - a[1])
+          .map(([name, qty]) => `• ${name}  ×${qty}`)
+          .join('\n')
+      : '—';
+    return [periodKey, formatMXN(d.total || 0), productsStr];
   });
 
   (doc as any).autoTable({
-    startY: 30,
-    head: [['Período', 'Ganancia Bruta', 'Desglose de Productos']],
+    startY: 64,
+    head: [['Período', 'Total de Ventas', 'Productos Vendidos']],
     body: tableData,
-    theme: 'grid',
-    styles: { fontSize: 8 },
-    columnStyles: { 2: { cellWidth: 100 } }
+    theme: 'striped',
+    headStyles: {
+      fillColor: [17, 17, 17],
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      fontSize: 9,
+    },
+    bodyStyles: { fontSize: 8, valign: 'top' },
+    alternateRowStyles: { fillColor: [250, 250, 250] },
+    columnStyles: {
+      0: { cellWidth: 36, fontStyle: 'bold' },
+      1: { cellWidth: 38, halign: 'right' },
+      2: { cellWidth: 'auto' },
+    },
+    margin: { left: 14, right: 14 },
   });
 
-  doc.save(`resumen-${title.toLowerCase().replace(/ /g, '-')}-${Date.now()}.pdf`);
+  // ── Footer ───────────────────────────────────────────────────
+  const pageCount = (doc as any).internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(7);
+    doc.setTextColor(160, 160, 160);
+    doc.text(
+      `Página ${i} de ${pageCount}  |  Resumen ${periodLabel}`,
+      pageW / 2,
+      doc.internal.pageSize.getHeight() - 8,
+      { align: 'center' }
+    );
+  }
+
+  doc.save(`resumen-${periodLabel.toLowerCase()}-${Date.now()}.pdf`);
 };
+
+// ── helpers for default date values ─────────────────────────
+const todayISO = () => new Date().toISOString().slice(0, 10);
+const currentWeekISO = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const startOfYear = new Date(year, 0, 1);
+  const weekNum = Math.ceil(
+    ((now.getTime() - startOfYear.getTime()) / 86400000 + startOfYear.getDay() + 1) / 7
+  );
+  return `${year}-W${String(weekNum).padStart(2, '0')}`;
+};
+const currentMonthISO = () => new Date().toISOString().slice(0, 7);
 
 const Dashboard = () => {
   const { user } = useAuthStore();
   const [historyMode, setHistoryMode] = useState<'tickets' | 'daily' | 'weekly' | 'monthly'>('tickets');
   const [showAllTickets, setShowAllTickets] = useState(false);
+
+  // Period selectors
+  const [selectedDate, setSelectedDate] = useState(todayISO);
+  const [selectedWeek, setSelectedWeek] = useState(currentWeekISO);
+  const [selectedMonth, setSelectedMonth] = useState(currentMonthISO);
 
   const { data: settings } = useQuery({
     queryKey: ['settings'],
@@ -177,21 +270,99 @@ const Dashboard = () => {
           <div className="p-6 flex-1 flex flex-col">
             <h3 className="font-semibold leading-none tracking-tight">Historial de Ventas</h3>
             
-            <div className="flex justify-between items-center bg-gray-50 p-1.5 rounded-lg mt-4 mb-4">
-              <div className="flex gap-1 flex-1">
-                <button onClick={() => setHistoryMode('tickets')} className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${historyMode === 'tickets' ? 'bg-white shadow-sm text-gray-900 border border-gray-200' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}>Tickets</button>
-                <button onClick={() => setHistoryMode('daily')} className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${historyMode === 'daily' ? 'bg-white shadow-sm text-gray-900 border border-gray-200' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}>Diario</button>
-                <button onClick={() => setHistoryMode('weekly')} className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${historyMode === 'weekly' ? 'bg-white shadow-sm text-gray-900 border border-gray-200' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}>Semanal</button>
-                <button onClick={() => setHistoryMode('monthly')} className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${historyMode === 'monthly' ? 'bg-white shadow-sm text-gray-900 border border-gray-200' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}>Mensual</button>
-              </div>
-              {historyMode === 'tickets' ? (
-                <button onClick={() => setShowAllTickets(true)} className="ml-4 px-3 py-1.5 text-sm text-blue-600 hover:underline flex items-center gap-1.5 font-medium whitespace-nowrap">
+            {/* ── Mode tabs ── */}
+            <div className="flex gap-1 bg-gray-50 p-1.5 rounded-lg mt-4">
+              <button onClick={() => setHistoryMode('tickets')} className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${historyMode === 'tickets' ? 'bg-white shadow-sm text-gray-900 border border-gray-200' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}>Tickets</button>
+              <button onClick={() => setHistoryMode('daily')} className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${historyMode === 'daily' ? 'bg-white shadow-sm text-gray-900 border border-gray-200' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}>Diario</button>
+              <button onClick={() => setHistoryMode('weekly')} className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${historyMode === 'weekly' ? 'bg-white shadow-sm text-gray-900 border border-gray-200' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}>Semanal</button>
+              <button onClick={() => setHistoryMode('monthly')} className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${historyMode === 'monthly' ? 'bg-white shadow-sm text-gray-900 border border-gray-200' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}>Mensual</button>
+            </div>
+
+            {/* ── Period selector + download ── */}
+            <div className="mt-3 mb-4 flex items-center gap-2">
+              {historyMode === 'tickets' && (
+                <button onClick={() => setShowAllTickets(true)} className="px-3 py-1.5 text-sm text-blue-600 hover:underline flex items-center gap-1.5 font-medium">
                   <FileText className="w-4 h-4"/> Todos los tickets
                 </button>
-              ) : (
-                <button onClick={() => downloadPeriodSummary(historyMode, historyMode === 'daily' ? dailyHistory : historyMode === 'weekly' ? weeklyHistory : monthlyHistory)} className="ml-4 px-3 py-1.5 text-sm bg-black text-white rounded-md hover:bg-gray-800 transition-colors flex items-center gap-1.5 font-medium whitespace-nowrap">
-                  Descargar PDF
-                </button>
+              )}
+
+              {historyMode === 'daily' && (
+                <>
+                  <label className="text-xs font-medium text-gray-500">Selecciona el día:</label>
+                  <input
+                    id="daily-date-picker"
+                    type="date"
+                    value={selectedDate}
+                    onChange={e => setSelectedDate(e.target.value)}
+                    className="text-sm border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-black/20"
+                  />
+                  <button
+                    onClick={() => {
+                      // selectedDate is ISO "2026-08-17"; dailyHistory stores locale dates e.g. "17/8/2026"
+                      // Add T12:00 to avoid timezone shifting the day
+                      const localeDate = new Date(selectedDate + 'T12:00:00').toLocaleDateString();
+                      const entry = dailyHistory.find((d: any) => d.date === localeDate);
+                      if (entry) downloadPeriodSummary('daily', [entry]);
+                      else alert('No hay ventas para ese día.');
+                    }}
+                    className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-sm bg-black text-white rounded-md hover:bg-gray-800 transition-colors font-medium"
+                  >
+                    <Download className="w-3.5 h-3.5" /> Descargar PDF
+                  </button>
+                </>
+              )}
+
+              {historyMode === 'weekly' && (
+                <>
+                  <label className="text-xs font-medium text-gray-500">Selecciona la semana:</label>
+                  <input
+                    id="weekly-week-picker"
+                    type="week"
+                    value={selectedWeek}
+                    onChange={e => setSelectedWeek(e.target.value)}
+                    className="text-sm border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-black/20"
+                  />
+                  <button
+                    onClick={() => {
+                      // Match "Semana N, YYYY" format stored in weeklyHistory
+                      const [yearStr, wStr] = selectedWeek.split('-W');
+                      const weekNum = parseInt(wStr, 10);
+                      const label = `Semana ${weekNum}, ${yearStr}`;
+                      const entry = weeklyHistory.find((w: any) => w.period === label);
+                      if (entry) downloadPeriodSummary('weekly', [entry]);
+                      else alert('No hay ventas para esa semana.');
+                    }}
+                    className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-sm bg-black text-white rounded-md hover:bg-gray-800 transition-colors font-medium"
+                  >
+                    <Download className="w-3.5 h-3.5" /> Descargar PDF
+                  </button>
+                </>
+              )}
+
+              {historyMode === 'monthly' && (
+                <>
+                  <label className="text-xs font-medium text-gray-500">Selecciona el mes:</label>
+                  <input
+                    id="monthly-month-picker"
+                    type="month"
+                    value={selectedMonth}
+                    onChange={e => setSelectedMonth(e.target.value)}
+                    className="text-sm border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-black/20"
+                  />
+                  <button
+                    onClick={() => {
+                      // Month stored as "M/YYYY" e.g. "8/2026"
+                      const [yearStr, monthStr] = selectedMonth.split('-');
+                      const monthKey = `${parseInt(monthStr, 10)}/${yearStr}`;
+                      const entry = monthlyHistory.find((m: any) => m.month === monthKey);
+                      if (entry) downloadPeriodSummary('monthly', [entry]);
+                      else alert('No hay ventas para ese mes.');
+                    }}
+                    className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-sm bg-black text-white rounded-md hover:bg-gray-800 transition-colors font-medium"
+                  >
+                    <Download className="w-3.5 h-3.5" /> Descargar PDF
+                  </button>
+                </>
               )}
             </div>
 
