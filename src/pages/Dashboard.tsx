@@ -25,7 +25,6 @@ const downloadPeriodSummary = (mode: string, data: any[]) => {
   const doc = new jsPDF();
   const pageW = doc.internal.pageSize.getWidth();
 
-  // ── Header bar ──────────────────────────────────────────────
   doc.setFillColor(17, 17, 17);
   doc.rect(0, 0, pageW, 32, 'F');
 
@@ -38,7 +37,6 @@ const downloadPeriodSummary = (mode: string, data: any[]) => {
   doc.setFont('helvetica', 'normal');
   doc.text(`Generado el ${dateStr}`, 14, 24);
 
-  // ── Totals summary ──────────────────────────────────────────
   const grandTotal = data.reduce((sum, d) => sum + (d.total || 0), 0);
   const totalTx = data.length;
 
@@ -57,14 +55,13 @@ const downloadPeriodSummary = (mode: string, data: any[]) => {
   doc.setFont('helvetica', 'normal');
   doc.text(`${totalTx}`, pageW / 2 + 42, 50);
 
-  // ── Table ───────────────────────────────────────────────────
   const tableData = data.map((d) => {
     const periodKey = d.date || d.period || d.month || 'N/A';
     const productsStr = d.products
       ? Object.entries(d.products)
-          .sort((a: any, b: any) => b[1] - a[1])
-          .map(([name, qty]) => `• ${name}  ×${qty}`)
-          .join('\n')
+        .sort((a: any, b: any) => b[1] - a[1])
+        .map(([name, qty]) => `• ${name}  ×${qty}`)
+        .join('\n')
       : '—';
     return [periodKey, formatMXN(d.total || 0), productsStr];
   });
@@ -90,7 +87,6 @@ const downloadPeriodSummary = (mode: string, data: any[]) => {
     margin: { left: 14, right: 14 },
   });
 
-  // ── Footer ───────────────────────────────────────────────────
   const pageCount = (doc as any).internal.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
@@ -107,7 +103,6 @@ const downloadPeriodSummary = (mode: string, data: any[]) => {
   doc.save(`resumen-${periodLabel.toLowerCase()}-${Date.now()}.pdf`);
 };
 
-// ── helpers for default date values ─────────────────────────
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const currentWeekISO = () => {
   const now = new Date();
@@ -125,7 +120,6 @@ const Dashboard = () => {
   const [historyMode, setHistoryMode] = useState<'tickets' | 'daily' | 'weekly' | 'monthly'>('tickets');
   const [showAllTickets, setShowAllTickets] = useState(false);
 
-  // Period selectors
   const [selectedDate, setSelectedDate] = useState(todayISO);
   const [selectedWeek, setSelectedWeek] = useState(currentWeekISO);
   const [selectedMonth, setSelectedMonth] = useState(currentMonthISO);
@@ -158,7 +152,7 @@ const Dashboard = () => {
   });
 
   const lowStockProducts = products?.filter((p: any) => p.stock <= p.minStock) || [];
-  
+
   const todaySales = sales?.filter((s: any) => {
     const saleDate = new Date(s.createdAt).toLocaleDateString();
     const today = new Date().toLocaleDateString();
@@ -173,7 +167,7 @@ const Dashboard = () => {
       const date = new Date(sale.createdAt).toLocaleDateString();
       if (!acc[date]) acc[date] = { total: 0, products: {} };
       acc[date].total += sale.total;
-      
+
       sale.items?.forEach((item: any) => {
         const pName = item.product?.name || 'Item';
         if (!acc[date].products[pName]) acc[date].products[pName] = 0;
@@ -183,8 +177,8 @@ const Dashboard = () => {
       return acc;
     }, {});
     return Object.entries(grouped)
-        .map(([date, data]: any) => ({ date, total: data.total, products: data.products }))
-        .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      .map(([date, data]: any) => ({ date, total: data.total, products: data.products }))
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [sales]);
 
   const weeklyHistory = useMemo(() => {
@@ -194,11 +188,11 @@ const Dashboard = () => {
       const startDate = new Date(date.getFullYear(), 0, 1);
       var days = Math.floor((date.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000));
       var weekNum = Math.ceil(days / 7);
-      
+
       const weekStr = `Semana ${weekNum}, ${date.getFullYear()}`;
       if (!acc[weekStr]) acc[weekStr] = { total: 0, products: {} };
       acc[weekStr].total += sale.total;
-      
+
       sale.items?.forEach((item: any) => {
         const pName = item.product?.name || 'Item';
         if (!acc[weekStr].products[pName]) acc[weekStr].products[pName] = 0;
@@ -208,9 +202,8 @@ const Dashboard = () => {
       return acc;
     }, {});
     return Object.entries(grouped)
-        .map(([period, data]: any) => ({ period, total: data.total, products: data.products }))
-        // no strict sorting here to keep it simple, it's mostly visual
-        .reverse();
+      .map(([period, data]: any) => ({ period, total: data.total, products: data.products }))
+      .reverse();
   }, [sales]);
 
   const monthlyHistory = useMemo(() => {
@@ -235,7 +228,7 @@ const Dashboard = () => {
   return (
     <div className="space-y-6 relative">
       <h2 className="text-3xl font-bold tracking-tight text-gray-900">Dashboard</h2>
-      
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-xl border bg-white text-card-foreground shadow-sm p-6">
           <div className="flex flex-row items-center justify-between pb-2">
@@ -269,8 +262,7 @@ const Dashboard = () => {
         <div className="col-span-4 rounded-xl border bg-white shadow-sm flex flex-col">
           <div className="p-6 flex-1 flex flex-col">
             <h3 className="font-semibold leading-none tracking-tight">Historial de Ventas</h3>
-            
-            {/* ── Mode tabs ── */}
+
             <div className="flex gap-1 bg-gray-50 p-1.5 rounded-lg mt-4">
               <button onClick={() => setHistoryMode('tickets')} className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${historyMode === 'tickets' ? 'bg-white shadow-sm text-gray-900 border border-gray-200' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}>Tickets</button>
               <button onClick={() => setHistoryMode('daily')} className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${historyMode === 'daily' ? 'bg-white shadow-sm text-gray-900 border border-gray-200' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}>Diario</button>
@@ -278,11 +270,10 @@ const Dashboard = () => {
               <button onClick={() => setHistoryMode('monthly')} className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${historyMode === 'monthly' ? 'bg-white shadow-sm text-gray-900 border border-gray-200' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}>Mensual</button>
             </div>
 
-            {/* ── Period selector + download ── */}
             <div className="mt-3 mb-4 flex items-center gap-2">
               {historyMode === 'tickets' && (
                 <button onClick={() => setShowAllTickets(true)} className="px-3 py-1.5 text-sm text-blue-600 hover:underline flex items-center gap-1.5 font-medium">
-                  <FileText className="w-4 h-4"/> Todos los tickets
+                  <FileText className="w-4 h-4" /> Todos los tickets
                 </button>
               )}
 
@@ -298,8 +289,6 @@ const Dashboard = () => {
                   />
                   <button
                     onClick={() => {
-                      // selectedDate is ISO "2026-08-17"; dailyHistory stores locale dates e.g. "17/8/2026"
-                      // Add T12:00 to avoid timezone shifting the day
                       const localeDate = new Date(selectedDate + 'T12:00:00').toLocaleDateString();
                       const entry = dailyHistory.find((d: any) => d.date === localeDate);
                       if (entry) downloadPeriodSummary('daily', [entry]);
@@ -324,7 +313,6 @@ const Dashboard = () => {
                   />
                   <button
                     onClick={() => {
-                      // Match "Semana N, YYYY" format stored in weeklyHistory
                       const [yearStr, wStr] = selectedWeek.split('-W');
                       const weekNum = parseInt(wStr, 10);
                       const label = `Semana ${weekNum}, ${yearStr}`;
@@ -351,7 +339,6 @@ const Dashboard = () => {
                   />
                   <button
                     onClick={() => {
-                      // Month stored as "M/YYYY" e.g. "8/2026"
                       const [yearStr, monthStr] = selectedMonth.split('-');
                       const monthKey = `${parseInt(monthStr, 10)}/${yearStr}`;
                       const entry = monthlyHistory.find((m: any) => m.month === monthKey);
@@ -368,8 +355,8 @@ const Dashboard = () => {
 
             <div className="space-y-3 flex-1 overflow-y-auto pr-1">
               {historyMode === 'tickets' && (
-                 <>
-                   {sales?.slice(0, 5).map((sale: any) => (
+                <>
+                  {sales?.slice(0, 5).map((sale: any) => (
                     <div key={sale.id} className="flex flex-col border border-gray-100 bg-gray-50/50 rounded-lg p-3">
                       <div className="flex items-center justify-between">
                         <div>
@@ -386,24 +373,24 @@ const Dashboard = () => {
                     </div>
                   ))}
                   {!sales?.length && <p className="text-sm text-gray-500 text-center py-4">No hay ventas registradas.</p>}
-                 </>
+                </>
               )}
 
               {historyMode === 'daily' && (
                 <>
                   {dailyHistory.slice(0, 7).map((day: any) => (
                     <div key={day.date} className="flex flex-col border-b pb-3 pt-1">
-                       <div className="flex items-center justify-between">
-                         <span className="font-semibold text-sm">{day.date}</span>
-                         <span className="font-bold text-blue-600">+{formatMXN(Number(day.total))}</span>
-                       </div>
-                       <div className="mt-2 flex flex-wrap gap-1">
-                         {day.products && Object.entries(day.products).map(([pName, qty]: any) => (
-                            <span key={pName} className="text-[10px] bg-gray-100 px-1.5 py-0.5 rounded text-gray-600 border border-gray-200">
-                              {pName} x{qty}
-                            </span>
-                         ))}
-                       </div>
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-sm">{day.date}</span>
+                        <span className="font-bold text-blue-600">+{formatMXN(Number(day.total))}</span>
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {day.products && Object.entries(day.products).map(([pName, qty]: any) => (
+                          <span key={pName} className="text-[10px] bg-gray-100 px-1.5 py-0.5 rounded text-gray-600 border border-gray-200">
+                            {pName} x{qty}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   ))}
                   {!dailyHistory.length && <p className="text-sm text-gray-500 text-center py-4">No hay datos diarios.</p>}
@@ -414,17 +401,17 @@ const Dashboard = () => {
                 <>
                   {weeklyHistory.map((week: any) => (
                     <div key={week.period} className="flex flex-col border-b pb-3 pt-1">
-                       <div className="flex items-center justify-between">
-                         <span className="font-semibold text-sm">{week.period}</span>
-                         <span className="font-bold text-blue-600">+{formatMXN(Number(week.total))}</span>
-                       </div>
-                       <div className="mt-2 flex flex-wrap gap-1">
-                         {week.products && Object.entries(week.products).map(([pName, qty]: any) => (
-                            <span key={pName} className="text-[10px] bg-gray-100 px-1.5 py-0.5 rounded text-gray-600 border border-gray-200">
-                              {pName} x{qty}
-                            </span>
-                         ))}
-                       </div>
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-sm">{week.period}</span>
+                        <span className="font-bold text-blue-600">+{formatMXN(Number(week.total))}</span>
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {week.products && Object.entries(week.products).map(([pName, qty]: any) => (
+                          <span key={pName} className="text-[10px] bg-gray-100 px-1.5 py-0.5 rounded text-gray-600 border border-gray-200">
+                            {pName} x{qty}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   ))}
                   {!weeklyHistory.length && <p className="text-sm text-gray-500 text-center py-4">No hay datos semanales.</p>}
@@ -435,17 +422,17 @@ const Dashboard = () => {
                 <>
                   {monthlyHistory.map((month: any) => (
                     <div key={month.month} className="flex flex-col border-b pb-3 pt-1">
-                       <div className="flex items-center justify-between">
-                         <span className="font-semibold text-sm">{month.month}</span>
-                         <span className="font-bold text-blue-600">+{formatMXN(Number(month.total))}</span>
-                       </div>
-                       <div className="mt-2 flex flex-wrap gap-1">
-                         {month.products && Object.entries(month.products).map(([pName, qty]: any) => (
-                            <span key={pName} className="text-[10px] bg-gray-100 px-1.5 py-0.5 rounded text-gray-600 border border-gray-200">
-                              {pName} x{qty}
-                            </span>
-                         ))}
-                       </div>
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-sm">{month.month}</span>
+                        <span className="font-bold text-blue-600">+{formatMXN(Number(month.total))}</span>
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {month.products && Object.entries(month.products).map(([pName, qty]: any) => (
+                          <span key={pName} className="text-[10px] bg-gray-100 px-1.5 py-0.5 rounded text-gray-600 border border-gray-200">
+                            {pName} x{qty}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   ))}
                   {!monthlyHistory.length && <p className="text-sm text-gray-500 text-center py-4">No hay datos mensuales.</p>}
@@ -459,7 +446,7 @@ const Dashboard = () => {
           <div className="p-6 flex-1">
             <h3 className="font-semibold leading-none tracking-tight">Atención Requerida (Stock)</h3>
             <div className="mt-4 space-y-4">
-               {lowStockProducts.slice(0, 5).map((prod: any) => (
+              {lowStockProducts.slice(0, 5).map((prod: any) => (
                 <div key={prod.id} className="flex items-center justify-between p-3 border border-red-100 bg-red-50/30 rounded-lg">
                   <div className="space-y-1">
                     <p className="text-sm font-semibold text-gray-900">{prod.name}</p>
@@ -474,45 +461,44 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Modal - Todos los tickets */}
       {showAllTickets && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-           <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl flex flex-col max-h-[85vh]">
-              <div className="flex items-center justify-between p-4 border-b">
-                <h3 className="text-lg font-bold">Todos los Tickets</h3>
-                <button onClick={() => setShowAllTickets(false)} className="p-1 rounded-full hover:bg-gray-100 transition-colors">
-                  <X className="w-5 h-5 text-gray-500" />
-                </button>
-              </div>
-              <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/50">
-                 {sales?.map((sale: any) => (
-                   <div key={sale.id} className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-white border rounded-lg shadow-sm">
-                      <div className="mb-2 md:mb-0">
-                        <div className="font-bold text-gray-900 flex items-center gap-2">
-                           Ticket #{sale.id.slice(-5).toUpperCase()}
-                           <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium">{sale.items?.length || 0} items</span>
-                        </div>
-                        <div className="text-sm text-gray-500 mt-1">
-                          {new Date(sale.createdAt).toLocaleString()}
-                        </div>
-                      </div>
-                      <div className="flex flex-col md:items-end gap-2">
-                         <div className="font-extrabold text-blue-600 text-lg">
-                            {formatMXN(sale.total)}
-                         </div>
-                          <button onClick={() => downloadTicket(sale, businessName)} className="text-xs bg-black text-white px-3 py-1.5 rounded-md font-medium hover:bg-gray-800 transition-colors">
-                            Descargar PDF
-                          </button>
-                      </div>
-                   </div>
-                 ))}
-                 {!sales?.length && (
-                   <div className="text-center py-10 text-gray-500">
-                     No hay tickets para mostrar.
-                   </div>
-                 )}
-              </div>
-           </div>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl flex flex-col max-h-[85vh]">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="text-lg font-bold">Todos los Tickets</h3>
+              <button onClick={() => setShowAllTickets(false)} className="p-1 rounded-full hover:bg-gray-100 transition-colors">
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/50">
+              {sales?.map((sale: any) => (
+                <div key={sale.id} className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-white border rounded-lg shadow-sm">
+                  <div className="mb-2 md:mb-0">
+                    <div className="font-bold text-gray-900 flex items-center gap-2">
+                      Ticket #{sale.id.slice(-5).toUpperCase()}
+                      <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium">{sale.items?.length || 0} items</span>
+                    </div>
+                    <div className="text-sm text-gray-500 mt-1">
+                      {new Date(sale.createdAt).toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="flex flex-col md:items-end gap-2">
+                    <div className="font-extrabold text-blue-600 text-lg">
+                      {formatMXN(sale.total)}
+                    </div>
+                    <button onClick={() => downloadTicket(sale, businessName)} className="text-xs bg-black text-white px-3 py-1.5 rounded-md font-medium hover:bg-gray-800 transition-colors">
+                      Descargar PDF
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {!sales?.length && (
+                <div className="text-center py-10 text-gray-500">
+                  No hay tickets para mostrar.
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
